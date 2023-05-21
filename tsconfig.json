@@ -25,7 +25,7 @@
     "next-env-custom.d.ts",
     "image.d.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx", "src/page-components/TopPageComponent"
   ],
   "exclude": [
     "node_modules"
