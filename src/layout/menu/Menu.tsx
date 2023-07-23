@@ -7,12 +7,35 @@ import Link from 'next/link';
 import React from 'react';
 import { useRouter } from 'next/router';
 import { firstLevelMenu } from '../../helpers/helpers';
-
+import { motion } from 'framer-motion';
 
 export const Menu = (): JSX.Element => {
 	const { menu, setMenu, firstCategory } = useContext(AppContext);
 
 	const router = useRouter();
+
+	const variants = {
+		visible: {
+			marginBottom: 20,
+			transition: {
+				when: 'beforeChildren',
+				staggerChildren: 0.1
+			}
+		},
+		hidden: {
+			marginBottom: 0
+		},
+	}
+	const variantsChildren = {
+		visible: {
+			opacity: 1,
+			height: 29,
+		},
+		hidden: {
+			opacity: 0,
+			height: 0,
+		},
+	};
 
 	const openSecondLevel = (secondCategory: string) => {
 		setMenu && setMenu(menu.map(m => {
@@ -60,11 +83,15 @@ export const Menu = (): JSX.Element => {
 							<div className={styles.secondLevel} onClick={() => openSecondLevel(m._id.secondCategory)}>
 								{m._id.secondCategory}
 							</div>
-							<div className={cn(styles.secondLevelBlock, {
-								[styles.secondLevelBlockOpen]: m.isOpen
-							})}>
+							<motion.div
+								layout
+								variants={variants}
+								initial={m.isOpen ? 'visible' : 'hidden'}
+								animate={m.isOpen ? 'visible' : 'hidden'}
+								className={cn(styles.secondLevelBlock)}
+							>
 								{buildThirdLevel(m.pages, menuItem.route)}
-							</div>
+							</motion.div>
 						</div>
 					);
 				})}
@@ -74,13 +101,15 @@ export const Menu = (): JSX.Element => {
 	const buildThirdLevel = (pages: PageItem[], route: string) => {
 		return (
 			pages.map(p => (
-				<Link href={`/${route}/${p.alias}`} legacyBehavior>
-					<a key={p.alias} className={cn(styles.thirdLevel, {
-						[styles.thirdLevelActive]: `/${route}/${p.alias}` === router.asPath
-					})}>
-						{p.category}
-					</a >
-				</Link>
+				<motion.div key={p._id} variants={variantsChildren}>
+					<Link href={`/${route}/${p.alias}`} legacyBehavior>
+						<a key={p.alias} className={cn(styles.thirdLevel, {
+							[styles.thirdLevelActive]: `/${route}/${p.alias}` === router.asPath
+						})}>
+							{p.category}
+						</a >
+					</Link>
+				</motion.div>
 			))
 		);
 	};
