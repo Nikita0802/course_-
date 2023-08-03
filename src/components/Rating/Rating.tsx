@@ -1,19 +1,34 @@
 import { RatingProps } from './Rating.props';
 import StarIcon from "./star.svg";
-import { useEffect, useState, KeyboardEvent, forwardRef, ForwardedRef } from 'react';
+import { useEffect, useState, KeyboardEvent, forwardRef, ForwardedRef, useRef } from 'react';
 import cn from "classnames";
 import styles from "./Rating.module.css";
 
 
 
 
-export const Rating = forwardRef(({ error, isEditable = false, rating, setRating, ...props }: RatingProps, ref: ForwardedRef<HTMLDivElement>): JSX.Element => {
+export const Rating = forwardRef(({ error, isEditable = false, rating, setRating, tabIndex, ...props }: RatingProps, ref: ForwardedRef<HTMLDivElement>): JSX.Element => {
 
 	const [raitngArray, setRatingArray] = useState<JSX.Element[]>(new Array(5).fill(<></>));
 
+	const ratingArrayRef = useRef<(HTMLSpanElement | null)[]>([]);
+
+	const computeFocus = (r: number, i: number): number => {
+		if (!isEditable) {
+			return -1;
+		}
+		if (!rating && i == 0) {
+			return tabIndex ?? 0;
+		}
+		if (r == i + 1) {
+			return tabIndex ?? 0;
+		}
+		return -1;
+	};
+
 	useEffect(() => {
 		construcktRating(rating);
-	}, [rating]);
+	}, [rating, tabIndex]);
 
 	const construcktRating = (currentRating: number) => {
 		const updatedArray = raitngArray.map((r: JSX.Element, i: number) => {
@@ -26,11 +41,17 @@ export const Rating = forwardRef(({ error, isEditable = false, rating, setRating
 					onMouseEnter={() => changeDisplay(i + 1)}
 					onMouseLeave={() => changeDisplay(rating)}
 					onClick={() => onclick(i + 1)}
+					tabIndex={computeFocus(rating, i)}
+					onKeyDown={handleKey}
+					ref={r => ratingArrayRef.current?.push(r)}
+					role={isEditable ? 'slider' : ''}
+					aria-invalid={error ? true : false}
+					aria-valuenow={rating}
+					aria-valuemax={5}
+					aria-label={isEditable ? 'Укажите рейтинг' : ("рейтинг" + rating)}
+					aria-valuemin={1}
 				>
-					<StarIcon
-						tabIndex={isEditable ? 0 : -1}
-						onKeyDown={(e: KeyboardEvent<SVGAElement>) => isEditable && handleSpace(i + 1, e)}
-					/>
+					<StarIcon />
 				</span>
 			);
 		});
@@ -51,11 +72,28 @@ export const Rating = forwardRef(({ error, isEditable = false, rating, setRating
 		setRating(i);
 	};
 
-	const handleSpace = (i: number, e: KeyboardEvent<SVGAElement>) => {
-		if (e.code != 'Space' || !setRating) {
+	const handleKey = (e: KeyboardEvent) => {
+		if (!isEditable || !setRating) {
 			return;
 		}
-		setRating(i);
+		if (e.code == 'ArrowRight' || e.code == 'ArrowUp') {
+			if (!rating) {
+				setRating(1);
+			} else {
+				e.preventDefault();
+				setRating(rating < 5 ? rating + 1 : 5);
+			}
+			ratingArrayRef.current[rating]?.focus();
+		}
+		if (e.code == 'ArrowLeft' || e.code == 'ArrowDown') {
+			if (!rating) {
+				setRating(1);
+			} else {
+				e.preventDefault();
+				setRating(rating > 1 ? rating - 1 : 1);
+			}
+			ratingArrayRef.current[rating - 2]?.focus();
+		}
 	};
 
 	return (
@@ -63,7 +101,7 @@ export const Rating = forwardRef(({ error, isEditable = false, rating, setRating
 			[styles.error]: error
 		})}>
 			{raitngArray.map((r, i) => (<span className={cn()} key={i}>{r}</span>))}
-			{error && <span className={styles.errorMessage}>{error.message}</span>}
+			{error && <span role='alert' className={styles.errorMessage}>{error.message}</span>}
 		</div>
 	);
 });

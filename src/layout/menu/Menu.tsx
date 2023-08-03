@@ -1,23 +1,24 @@
 import styles from './Menu.module.css';
 import cn from 'classnames';
-import { useContext } from 'react';
+import { useContext, KeyboardEvent, useState } from 'react';
 import { AppContext } from '../../context/app.context';
 import { FirstLevelMenuItem, PageItem } from '../../interfaces/menu.interface';
 import Link from 'next/link';
 import React from 'react';
 import { useRouter } from 'next/router';
 import { firstLevelMenu } from '../../helpers/helpers';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 export const Menu = (): JSX.Element => {
 	const { menu, setMenu, firstCategory } = useContext(AppContext);
-
+	const [announs, srtAnnouns] = useState<'cloused' | 'opened' | undefined>();
 	const router = useRouter();
+	const shouldReduceMotion = useReducedMotion();
 
 	const variants = {
 		visible: {
 			marginBottom: 20,
-			transition: {
+			transition: shouldReduceMotion ? {} : {
 				when: 'beforeChildren',
 				staggerChildren: 0.1
 			}
@@ -40,17 +41,25 @@ export const Menu = (): JSX.Element => {
 	const openSecondLevel = (secondCategory: string) => {
 		setMenu && setMenu(menu.map(m => {
 			if (m._id.secondCategory === secondCategory) {
+				srtAnnouns(m.isOpen ? 'cloused' : 'opened')
 				return { ...m, isOpen: !m.isOpen };
 			}
 			return m;
 		}));
 	};
 
+	const openSecondLevelKey = (key: KeyboardEvent, secondCategory: string) => {
+		if (key.code == 'Space' || key.code == 'Enter') {
+			key.preventDefault();
+			openSecondLevel(secondCategory);
+		}
+	};
+
 	const buildFirstLevel = () => {
 		return (
-			<>
+			<ul className={styles.firstLevelList}>
 				{firstLevelMenu.map(m => (
-					<div key={m.route}>
+					<li key={m.route} aria-expanded={m.id === firstCategory}>
 						<Link href={`/${m.route}`} legacyBehavior>
 							<a >
 								<div className={cn(styles.firstLevel, {
@@ -64,59 +73,66 @@ export const Menu = (): JSX.Element => {
 							</a>
 						</Link>
 						{m.id === firstCategory && buildSecondLevel(m)}
-					</div >
+					</li >
 				))
 				}
-			</>
+			</ul>
 		);
 	};
 
 	const buildSecondLevel = (menuItem: FirstLevelMenuItem) => {
 		return (
-			<div className={styles.secondBlock}>
+			<ul className={styles.secondBlock}>
 				{menu.map(m => {
 					if (m.pages.map(p => p.alias).includes(router.asPath.split('/')[2])) {
 						m.isOpen = true;
 					}
 					return (
-						<div key={m._id.secondCategory}>
-							<div className={styles.secondLevel} onClick={() => openSecondLevel(m._id.secondCategory)}>
+						<li key={m._id.secondCategory}>
+							<button
+								onKeyDown={(key: KeyboardEvent) => openSecondLevelKey(key, m._id.secondCategory)}
+								className={styles.secondLevel}
+								onClick={() => openSecondLevel(m._id.secondCategory)}
+								aria-expanded={m.isOpen}
+							>
 								{m._id.secondCategory}
-							</div>
-							<motion.div
+							</button>
+							<motion.ul
 								layout
 								variants={variants}
 								initial={m.isOpen ? 'visible' : 'hidden'}
 								animate={m.isOpen ? 'visible' : 'hidden'}
 								className={cn(styles.secondLevelBlock)}
 							>
-								{buildThirdLevel(m.pages, menuItem.route)}
-							</motion.div>
-						</div>
+								{buildThirdLevel(m.pages, menuItem.route, m.isOpen ?? false)}
+							</motion.ul>
+						</li>
 					);
 				})}
-			</div >
+			</ul >
 		);
 	};
-	const buildThirdLevel = (pages: PageItem[], route: string) => {
+	const buildThirdLevel = (pages: PageItem[], route: string, isOpened: boolean) => {
 		return (
 			pages.map(p => (
-				<motion.div key={p._id} variants={variantsChildren}>
+				<motion.li key={p._id} variants={variantsChildren}>
 					<Link href={`/${route}/${p.alias}`} legacyBehavior>
-						<a key={p.alias} className={cn(styles.thirdLevel, {
+						<a tabIndex={isOpened ? 0 : -1} key={p.alias} className={cn(styles.thirdLevel, {
 							[styles.thirdLevelActive]: `/${route}/${p.alias}` === router.asPath
-						})}>
+						})}
+							aria-current={`/${route}/${p.alias}` === router.asPath ? 'page' : 'false'}>
 							{p.category}
 						</a >
 					</Link>
-				</motion.div>
+				</motion.li>
 			))
 		);
 	};
 
 	return (
-		<div className={styles.menu}>
+		<nav className={styles.menu} role='navigation'>
+			{announs && <span role='log' className='visualyHidden'>{announs == 'opened' ? 'развёрнуто' : 'свёрнуто'}</span>}
 			{buildFirstLevel()}
-		</div>
+		</nav>
 	);
 };

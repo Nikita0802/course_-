@@ -134,25 +134,22 @@
 	font-weight: 700;
 }
 
+.reviews {
+	overflow: hidden;
+	padding: 30px;
+}
+
+.visualyHidden {
+	width: 0;
+	height: 0;
+	overflow: hidden;
+	position: absolute;
+}
 
 .characteristicsDots {
 	border-bottom: 1px dashed var(--gray-light);
 	margin-bottom: 5px;
 }
-
-.closed {
-	overflow: hidden;
-	max-height: 0;
-	padding: 0;
-}
-
-.opened {
-	overflow: hidden;
-	max-height: auto;
-	padding: 30;
-}
-
-
 
 @media screen and (max-width: 1320px) {
 	.product {
